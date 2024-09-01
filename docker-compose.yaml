@@ -1,0 +1,49 @@
+version: "3.9"
+
+x-build: &build
+  context: .
+  dockerfile: Dockerfile
+
+x-base: &base
+  image: ${IMAGE_NAME:-pilotlog}
+  build: *build
+  env_file: .env
+  volumes:
+    - .:/usr/src/app
+
+services:
+  db:
+    container_name: 'pilotlog_db'
+    image: postgres:14.5-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=pilotlog
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  service:
+    <<: *base
+    container_name: 'pilotlog'
+    entrypoint: docker/start.sh
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  test:
+    <<: *base
+    entrypoint: docker/test.sh
+    depends_on:
+      - db
