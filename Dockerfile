@@ -32,7 +32,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 COPY ./pyproject.toml ./poetry.lock ./
 RUN --mount=type=cache,id=poetry,target=$POETRY_CACHE_DIR,sharing=locked \
-    poetry install --no-root
+    poetry install --no-root --with prod
 
 
 FROM base AS final

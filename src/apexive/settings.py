@@ -5,13 +5,13 @@ from environ import Env
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = Env()
-env.read_env()
+env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env.str(
     "SECRET_KEY",
     default="q)gm=raps$o$n70*hx-c&mzcwy@to_74sww1n&*fc=1a$89z38",
 )
-DEBUG = env.bool("DEBUG", default=True)
+DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = []
 
@@ -62,7 +62,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": env.str("POSTGRES_DB", default="apexive"),
         "USER": env.str("POSTGRES_USER", default="postgres"),
-        "PASSWORD": env.str("POSTGRES_PASSWORD", default=""),
+        "PASSWORD": env.str("POSTGRES_PASSWORD", default="test"),
         "HOST": env.str("POSTGRES_HOST", default="localhost"),
         "PORT": env.int("POSTGRES_PORT", default=5432),
     }

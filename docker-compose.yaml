@@ -7,7 +7,7 @@ x-build: &build
 x-base: &base
   image: ${IMAGE_NAME:-pilotlog}
   build: *build
-  env_file: .env
+  env_file: ./src/.env
   volumes:
     - .:/usr/src/app
 

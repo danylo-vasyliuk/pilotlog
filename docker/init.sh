@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./manage.py migrate  --no-input --traceback
+./src/manage.py migrate  --no-input --traceback

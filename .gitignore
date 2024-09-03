@@ -113,3 +113,5 @@ dump.rdb
 
 .DS_Store
 entity_*
+
+pg_data
