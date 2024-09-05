@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import QuerySet
+from django.db.models.functions import Cast, Coalesce, Concat
 
 from pilotlog.importer.entities import TableType
 
@@ -26,6 +28,39 @@ class RecordModifiedMixin(models.Model):
 
     class Meta:
         abstract = True
+
+
+class AircraftManager(models.Manager):
+    def data_for_export(self) -> QuerySet["Aircraft"]:
+        empty_value = models.Value("", output_field=models.CharField())
+
+        # if field is commented, it means it exist in requirements template,
+        # but I don't know which field is response for this data
+        export_annotations = {
+            "AircraftID": Cast(models.F("code"), models.CharField()),
+            # "EquipmentType": empty_value,
+            # "TypeCode": empty_value,
+            # "Year": empty_value,
+            "Make": models.F("make"),
+            # "Model": empty_value,
+            "Category": Cast(models.F("category"), models.CharField()),
+            "Class": Cast(models.F("aircraft_class"), models.CharField()),
+            # "GearType": empty_value,
+            "EngineType": Coalesce(
+                Cast(models.F("eng_type"), models.CharField()),
+                empty_value,
+                output_field=models.CharField(),
+            ),
+            "Complex": models.F("complex"),
+            "HighPerformance": models.F("high_perf"),
+            # "Pressurized": empty_value,
+            # "TAA": empty_value,
+        }
+        return (
+            self.get_queryset()
+            .annotate(**export_annotations)
+            .values(*export_annotations.keys())
+        )
 
 
 class Aircraft(CodeMixin, RecordModifiedMixin):
@@ -63,6 +98,8 @@ class Aircraft(CodeMixin, RecordModifiedMixin):
     # "table": "aircraft" fields
     eng_group = models.PositiveIntegerField(blank=True, null=True)
     eng_type = models.PositiveIntegerField(blank=True, null=True)
+
+    objects = AircraftManager()
 
 
 class AirField(CodeMixin, RecordModifiedMixin):
@@ -102,6 +139,105 @@ class Pilot(CodeMixin, RecordModifiedMixin):
     phone_search = models.CharField(max_length=255)
     pilot_search = models.CharField(max_length=255)
     roster_alias = models.CharField(max_length=255, blank=True, null=True)
+
+
+class FlightManager(models.Manager):
+    def data_for_export(self) -> QuerySet["Flight"]:
+        empty_value = models.Value("", output_field=models.CharField())
+
+        def _get_pilot_data(p: str):
+            return Concat(
+                models.F(f"{p}__pilot_name"),
+                models.Value(";"),
+                models.F(f"{p}__company"),
+                models.Value(";"),
+                models.F(f"{p}__pilot_email"),
+            )
+
+        def _get_approach():
+            return Concat(
+                models.F("tag_approach"),
+                models.Value(";"),
+                models.F("dep_rwy"),
+                models.Value(";"),
+                models.F("dep__af_name"),
+                models.Value(";"),
+                models.F("remarks"),
+            )
+
+        # if field is commented, it means it exist in requirements template,
+        # but I don't know which field is response for this data
+        export_annotations = {
+            "Date": models.F("date_utc"),
+            "AircraftID": Cast(models.F("aircraft_id"), models.CharField()),
+            "From": empty_value,
+            "To": models.F("to_day"),
+            "Route": models.F("route"),
+            "TimeOut": empty_value,
+            "TimeOff": empty_value,
+            "TimeOn": empty_value,
+            "TimeIn": empty_value,
+            # "OnDuty": empty_value,
+            # "OffDuty": empty_value,
+            # "TotalTime": empty_value,
+            "PIC": models.F("min_pic"),
+            # "SIC": empty_value,
+            # "Night": empty_value,
+            # "Solo": empty_value,
+            # "CrossCountry": empty_value,
+            # "NVG": empty_value,
+            # "NVGOps": empty_value,
+            # "Distance": empty_value,
+            # "DayTakeoffs": empty_value,
+            # "DayLandingsFullStop": empty_value,
+            # "NightTakeoffs": empty_value,
+            # "NightLandingsFullStop": empty_value,
+            # "AllLandings": empty_value,
+            # "ActualInstrument": empty_value,
+            # "SimulatedInstrument": empty_value,
+            "HobbsStart": models.F("hobbs_in"),
+            "HobbsEnd": models.F("hobbs_out"),
+            # "TachStart": empty_value,
+            # "TachEnd": empty_value,
+            # "Holds": empty_value,
+            "Approach1": _get_approach(),
+            # "Approach2": empty_value,
+            # "Approach3": empty_value,
+            # "Approach4": empty_value,
+            # "Approach5": empty_value,
+            # "Approach6": empty_value,
+            # "DualGiven": empty_value,
+            # "DualReceived": empty_value,
+            # "SimulatedFlight": empty_value,
+            # "GroundTraining": empty_value,
+            # "InstructorName": empty_value,
+            # "InstructorComments": empty_value,
+            "Person1": _get_pilot_data("p1"),
+            "Person2": _get_pilot_data("p2"),
+            "Person3": _get_pilot_data("p3"),
+            "Person4": _get_pilot_data("p4"),
+            # "Person5": empty_value,
+            # "Person6": empty_value,
+            # "FlightReview": empty_value,
+            # "Checkride": empty_value,
+            # "IPC": empty_value,
+            # "NVGProficiency": empty_value,
+            # "FAA6158": empty_value,
+            # "[Text]CustomFieldName": empty_value,
+            # "[Numeric]CustomFieldName": empty_value,
+            # "[Hours]CustomFieldName": empty_value,
+            # "[Counter]CustomFieldName": empty_value,
+            # "[Date]CustomFieldName": empty_value,
+            # "[DateTime]CustomFieldName": empty_value,
+            # "[Toggle]CustomFieldName": empty_value,
+            # "PilotComments": empty_value,
+        }
+        return (
+            self.get_queryset()
+            .select_related("p1", "p2", "p3", "p4", "dep")
+            .annotate(**export_annotations)
+            .values(*export_annotations.keys())
+        )
 
 
 class Flight(CodeMixin, RecordModifiedMixin):
@@ -222,6 +358,8 @@ class Flight(CodeMixin, RecordModifiedMixin):
         null=True,
         related_name="departure_flights",
     )
+
+    objects = FlightManager()
 
 
 class ImagePic(CodeMixin, RecordModifiedMixin):
