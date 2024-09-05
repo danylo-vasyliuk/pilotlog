@@ -14,14 +14,6 @@ class ImportView(CreateAPIView):
     serializer_class = ImportSerializer
 
 
-class Echo:
-    """An object that implements just the write method of the file-like interface."""
-
-    def write(self, value):
-        """Write the value by returning it, instead of storing in a buffer."""
-        return value
-
-
 class ExportView(APIView):
     def get(self, request: Request) -> StreamingHttpResponse:
         csv_writer = CSVWriter()
