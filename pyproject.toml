@@ -43,7 +43,7 @@ ignore_missing_imports = true
 warn_unused_configs = true
 
 [tool.django-stubs]
-django_settings_module = "pilotlot.settings"
+django_settings_module = "apexive.settings"
 
 [tool.pytest.ini_options]
 minversion = "8.0"
@@ -54,7 +54,8 @@ addopts = [
     "-vv",
 ]
 testpaths = ["tests"]
-DJANGO_SETTINGS_MODULE = "pilotlot.settings"
+pythonpath = ["src", "."]
+DJANGO_SETTINGS_MODULE = "apexive.settings"
 
 [tool.coverage.run]
 branch = true
@@ -66,6 +67,9 @@ omit = [
     "**/settings.py",
     "**/admin.py",
     "**/apps.py",
+    "manage.py",
+    "wsgi.py",
+    "asgi.py",
 ]
 source = ["src"]
 
